@@ -4,11 +4,12 @@ GOSEC ?= gosec
 BIN_DIR=bin
 MAIN=$(BIN_DIR)/main
 PKG_IMPORT_PATH=github.com/rafaelespinoza/wrestic
+TESTDATA_SCRIPT=testdata.sh
 
 SRC_PATHS = . ./internal/...
 TEST_DIR=/tmp/wrestic_test
 
-.PHONY: build deps gosec test vet
+.PHONY: build deps gosec test vet testdata clean-testdata
 
 build:
 	mkdir -pv $(dir $(MAIN)) && $(GO) build -v -o $(MAIN) \
@@ -47,3 +48,9 @@ test:
 
 _testdirs:
 	mkdir -pv $(TEST_DIR) && chmod -v 700 $(TEST_DIR)
+
+testdata:
+	./$(TESTDATA_SCRIPT) init
+
+clean-testdata:
+	./$(TESTDATA_SCRIPT) teardown-all-testdata
