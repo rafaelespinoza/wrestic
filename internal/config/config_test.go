@@ -25,7 +25,7 @@ func TestParse(t *testing.T) {
 
 		expectedDefaults := config.Defaults{
 			PasswordConfig: &config.PasswordConfig{
-				File: makePWConfigFile("secrets/default"),
+				Template: newString("cat {{ filename (index . 0) }}"),
 			},
 		}
 
@@ -40,14 +40,14 @@ func TestParse(t *testing.T) {
 						Name: "alfa",
 						Path: "/tmp/wrestic_test/testdata/repos/alfa",
 						Defaults: config.Defaults{
-							PasswordConfig: &config.PasswordConfig{File: makePWConfigFile("secrets/a")},
+							PasswordConfig: &config.PasswordConfig{Args: []string{"secrets/a"}},
 						},
 					},
 					"bravo": {
 						Name: "bravo",
 						Path: "/tmp/wrestic_test/testdata/repos/bravo",
 						Defaults: config.Defaults{
-							PasswordConfig: &config.PasswordConfig{File: makePWConfigFile("secrets/a")},
+							PasswordConfig: &config.PasswordConfig{Args: []string{"secrets/a"}},
 						},
 					},
 				},
@@ -63,7 +63,7 @@ func TestParse(t *testing.T) {
 						Name: "charlie",
 						Path: "/tmp/wrestic_test/testdata/repos/charlie",
 						Defaults: config.Defaults{
-							PasswordConfig: &config.PasswordConfig{File: makePWConfigFile("secrets/b")},
+							PasswordConfig: &config.PasswordConfig{Args: []string{"secrets/b"}},
 						},
 					},
 				},
@@ -106,6 +106,30 @@ file = 'secrets/defaultpassword'
 
 		testDefaults(t, "", actual.Defaults, config.Defaults{})
 	})
+
+	t.Run("parses PasswordConfig", func(t *testing.T) {
+		const input = `
+[defaults]
+[defaults.password-config]
+template = 'age -d -i {{ filename (index . 0) }} {{ filename (index . 1) }}'
+args = ['secrets/id', 'secrets/foo']
+`
+		actual, err := config.Parse(strings.NewReader(input))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		expected := config.Params{
+			Defaults: config.Defaults{
+				PasswordConfig: &config.PasswordConfig{
+					Template: newString(`age -d -i {{ filename (index . 0) }} {{ filename (index . 1) }}`),
+					Args:     []string{"secrets/id", "secrets/foo"},
+				},
+			},
+		}
+
+		testDefaults(t, "", actual.Defaults, expected.Defaults)
+	})
 }
 
 func testDefaults(t *testing.T, errPrefix string, got, exp config.Defaults) {
@@ -121,13 +145,35 @@ func testPasswordConfig(t *testing.T, errPrefix string, got, exp *config.Passwor
 		t.Fatalf("%s got %v, expected %#v", errPrefix, got, *exp)
 	}
 
-	if got.File == nil && exp.File == nil {
-		// test OK
-	} else if got.File != nil && exp.File == nil {
-		t.Errorf("%s wrong File; got %q, expected %v", errPrefix, *got.File, exp.File)
-	} else if got.File == nil && exp.File != nil {
-		t.Errorf("%s wrong File; got %v, expected %q", errPrefix, got.File, *exp.File)
-	} else if got.File != nil && exp.File != nil && *got.File != *exp.File {
-		t.Errorf("%s wrong File; got %q, expected %q", errPrefix, *got.File, *exp.File)
+	testStringPointer(t, errPrefix+".PasswordConfig.Template", got.Template, exp.Template)
+	testStrings(t, errPrefix+".PasswordConfig.Args", got.Args, exp.Args)
+}
+
+func testStringPointer(t *testing.T, errPrefix string, got, exp *string) {
+	if got == nil && exp == nil {
+		return // test OK
+	} else if got != nil && exp == nil {
+		t.Errorf("%s got %q, expected %v", errPrefix, *got, exp)
+	} else if got == nil && exp != nil {
+		t.Errorf("%s got %v, expected %q", errPrefix, got, *exp)
+	} else if *got != *exp {
+		t.Errorf("%s got %q, expected %q", errPrefix, *got, *exp)
+	}
+}
+
+func testStrings(t *testing.T, errPrefix string, actual, expected []string) {
+	t.Helper()
+
+	if len(actual) != len(expected) {
+		t.Errorf("%s wrong number of Flags; got %d, expected %d", errPrefix, len(actual), len(expected))
+		return
+	}
+
+	for i, got := range actual {
+		exp := expected[i]
+
+		if got != exp {
+			t.Errorf("%s[%d] got %q, expected %q", errPrefix, i, got, exp)
+		}
 	}
 }

@@ -17,7 +17,7 @@ func TestSelectDatastores(t *testing.T) {
 		Path: "/tmp/wrestic_test/testdata/repos/alfa",
 		Defaults: config.Defaults{
 			PasswordConfig: &config.PasswordConfig{
-				File: makePWConfigFile("secrets/a"),
+				Args: []string{"secrets/a"},
 			},
 		},
 	}
@@ -26,7 +26,7 @@ func TestSelectDatastores(t *testing.T) {
 		Path: "/tmp/wrestic_test/testdata/repos/bravo",
 		Defaults: config.Defaults{
 			PasswordConfig: &config.PasswordConfig{
-				File: makePWConfigFile("secrets/a"),
+				Args: []string{"secrets/a"},
 			},
 		},
 	}
@@ -35,7 +35,7 @@ func TestSelectDatastores(t *testing.T) {
 		Path: "/tmp/wrestic_test/testdata/repos/charlie",
 		Defaults: config.Defaults{
 			PasswordConfig: &config.PasswordConfig{
-				File: makePWConfigFile("secrets/b"),
+				Args: []string{"secrets/b"},
 			},
 		},
 	}
@@ -232,110 +232,148 @@ func TestDestinationMerge(t *testing.T) {
 
 	tests := []testCase{
 		{
-			name: "File: defaults, datastore, destination all have values",
+			name: "PasswordConfig.Args: use Destination values",
 			inputs: `
 [defaults.password-config]
-file = 'secrets/defaultpwfile'
+args = ['secrets/defaults']
 
 [datastores.stuff]
 name = 'stuff'
 
 [datastores.stuff.defaults.password-config]
-file = 'secrets/stuff'
+args = ['secrets/stuff']
 
 [datastores.stuff.destinations.foo]
 name = 'foo'
+
 [datastores.stuff.destinations.foo.defaults.password-config]
-file = 'secrets/foo'`,
+args = ['secrets/foo']
+`,
 			expected: config.Defaults{
-				PasswordConfig: &config.PasswordConfig{
-					File: makePWConfigFile("secrets/foo"),
-				},
+				PasswordConfig: &config.PasswordConfig{Args: []string{"secrets/foo"}},
 			},
 		},
 		{
-			name: "File: Destination uses default value",
+			name: "PasswordConfig.Args: use Datastore values",
 			inputs: `
-[defaults]
-password-config.file = 'secrets/defaultpassword'
+[defaults.password-config]
+args = ['secrets/defaults']
 
 [datastores.stuff]
 name = 'stuff'
+
+[datastores.stuff.defaults.password-config]
+args = ['secrets/stuff']
 
 [datastores.stuff.destinations.foo]
-name = 'foo'`,
+name = 'foo'
+`,
 			expected: config.Defaults{
-				PasswordConfig: &config.PasswordConfig{
-					File: makePWConfigFile("secrets/defaultpassword"),
-				},
+				PasswordConfig: &config.PasswordConfig{Args: []string{"secrets/stuff"}},
 			},
 		},
 		{
-			name: "File: Destination uses datastore value",
+			name: "PasswordConfig.Args: use default values",
 			inputs: `
-[defaults]
-password-config.file = 'secrets/defaultpassword'
+[defaults.password-config]
+args = ['secrets/defaults']
 
 [datastores.stuff]
 name = 'stuff'
 
-[datastores.stuff.defaults]
-password-config.file = 'secrets/stuffpassword'
-
-[datastores.stuff.destinations.foo]
-name = 'foo'`,
-			expected: config.Defaults{
-				PasswordConfig: &config.PasswordConfig{
-					File: makePWConfigFile("secrets/stuffpassword"),
-				},
-			},
-		},
-		{
-			name: "File: Destination uses destination value",
-			inputs: `
-[defaults]
-password-config.file = 'secrets/defaultpassword'
-
-[datastores.stuff]
-name = 'stuff'
-
-[datastores.stuff.defaults]
-password-config.file = 'secrets/stuffpassword'
+[datastores.stuff.defaults.password-config]
 
 [datastores.stuff.destinations.foo]
 name = 'foo'
 
-[datastores.stuff.destinations.foo.defaults]
-password-config.file = 'secrets/foopassword'
+[datastores.stuff.destinations.foo.defaults.password-config]
 `,
 			expected: config.Defaults{
-				PasswordConfig: &config.PasswordConfig{
-					File: makePWConfigFile("secrets/foopassword"),
-				},
+				PasswordConfig: &config.PasswordConfig{Args: []string{"secrets/defaults"}},
 			},
 		},
 		{
-			name: "File: Destination has empty value",
+			name: "PasswordConfig.Template: use Destination values",
 			inputs: `
-[defaults]
-password-config.file = 'secrets/defaultpassword'
+[defaults.password-config]
+template = 'run_defaults'
 
 [datastores.stuff]
 name = 'stuff'
 
-[datastores.stuff.defaults]
-password-config.file = 'secrets/stuffpassword'
+[datastores.stuff.defaults.password-config]
+template = 'run_stuff'
 
 [datastores.stuff.destinations.foo]
 name = 'foo'
 
-[datastores.stuff.destinations.foo.defaults]
-password-config.file = '' # user specifies empty value for password file for some reason
+[datastores.stuff.destinations.foo.defaults.password-config]
+template = 'run_foo'
 `,
 			expected: config.Defaults{
-				PasswordConfig: &config.PasswordConfig{
-					File: makePWConfigFile(""),
-				},
+				PasswordConfig: &config.PasswordConfig{Template: newString("run_foo")},
+			},
+		},
+		{
+			name: "PasswordConfig.Template: use Datastore values",
+			inputs: `
+[defaults.password-config]
+template = 'run_defaults'
+
+[datastores.stuff]
+name = 'stuff'
+
+[datastores.stuff.defaults.password-config]
+template = 'run_stuff'
+
+[datastores.stuff.destinations.foo]
+name = 'foo'
+
+[datastores.stuff.destinations.foo.defaults.password-config]
+`,
+			expected: config.Defaults{
+				PasswordConfig: &config.PasswordConfig{Template: newString("run_stuff")},
+			},
+		},
+		{
+			name: "PasswordConfig.Template: use default values",
+			inputs: `
+[defaults.password-config]
+template = 'run_defaults'
+
+[datastores.stuff]
+name = 'stuff'
+
+[datastores.stuff.defaults.password-config]
+
+[datastores.stuff.destinations.foo]
+name = 'foo'
+
+[datastores.stuff.destinations.foo.defaults.password-config]
+`,
+			expected: config.Defaults{
+				PasswordConfig: &config.PasswordConfig{Template: newString("run_defaults")},
+			},
+		},
+		{
+			name: "PasswordConfig.Template: Destination has empty value",
+			inputs: `
+[defaults.password-config]
+template = 'run_defaults'
+
+[datastores.stuff]
+name = 'stuff'
+
+[datastores.stuff.defaults.password-config]
+
+[datastores.stuff.destinations.foo]
+name = 'foo'
+
+[datastores.stuff.destinations.foo.defaults.password-config]
+template = '' # user specifies empty value for some reason
+`,
+			expected: config.Defaults{
+				PasswordConfig: &config.PasswordConfig{Template: newString("")},
 			},
 		},
 	}
@@ -404,8 +442,7 @@ func testDestinations(t *testing.T, errPrefix string, got, exp map[string]config
 	}
 }
 
-// makePWConfigFile is a convenience func for setting up expected data in a test.
+// newString is a convenience func for setting up expected data in a test.
 // The go compiler says:
 // "invalid operation: cannot take address of ("foo") (untyped string constant "foo")".
-// So that's why this func exists.
-func makePWConfigFile(in string) (out *string) { return &in }
+func newString(in string) (out *string) { return &in }

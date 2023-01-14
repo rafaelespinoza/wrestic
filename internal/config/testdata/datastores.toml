@@ -2,7 +2,7 @@
 # See testdata.sh for how that works.
 
 [defaults]
-password-config.file = 'secrets/default'
+password-config.template = 'cat {{ filename (index . 0) }}'
 
 [datastores.stuff]
 name = 'stuff'
@@ -11,14 +11,14 @@ name = 'stuff'
 name = 'alfa'
 path = '/tmp/wrestic_test/testdata/repos/alfa'
 
-[datastores.stuff.destinations.alfa.defaults.password-config]
-file = 'secrets/a'
+[datastores.stuff.destinations.alfa.defaults]
+password-config.args = ['secrets/a']
 
 [datastores.stuff.destinations.bravo]
 name = 'bravo'
 path = '/tmp/wrestic_test/testdata/repos/bravo'
-[datastores.stuff.destinations.bravo.defaults.password-config]
-file = 'secrets/a'
+[datastores.stuff.destinations.bravo.defaults]
+password-config.args = ['secrets/a']
 
 [[datastores.stuff.sources]]
 path = '/tmp/wrestic_test/testdata/srcdata/foo'
@@ -30,8 +30,8 @@ name = 'things'
 name = 'charlie'
 path = '/tmp/wrestic_test/testdata/repos/charlie'
 
-[datastores.things.destinations.charlie.defaults.password-config]
-file = 'secrets/b'
+[datastores.things.destinations.charlie.defaults]
+password-config.args = ['secrets/b']
 
 [[datastores.things.sources]]
 path = '/tmp/wrestic_test/testdata/srcdata/bar'

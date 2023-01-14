@@ -23,7 +23,7 @@ restic_init () {
 
 	repopath="${REPOS_ROOT}/${reponame}"
 
-	"${RESTIC}" -r "${repopath}" --password-file "${keyfile}" "${subcmd}" init
+	"${RESTIC}" -r "${repopath}" --password-command "cat ${keyfile}" "${subcmd}" init
 }
 
 initialize () {

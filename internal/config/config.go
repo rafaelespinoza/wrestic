@@ -51,7 +51,7 @@ func mergeDefaults(dst, src *Defaults) {
 		return
 	} else if dst == nil && src != nil {
 		dupe := duplicateDefaults(*src)
-		*dst = dupe
+		dst = &dupe
 		return
 	}
 
@@ -64,29 +64,30 @@ func duplicateDefaults(in Defaults) (out Defaults) {
 }
 
 type PasswordConfig struct {
-	File *string `toml:"file"`
+	Template *string  `toml:"template"`
+	Args     []string `toml:"args"`
 }
 
 func mergePasswordConfig(dst, src *PasswordConfig) {
 	if (dst == nil && src == nil) || (dst != nil && src == nil) {
 		return
-	} else if dst == nil && src != nil {
+	}
+
+	if dst == nil && src != nil {
 		dupe := duplicatePasswordConfig(src)
 		if dupe != nil {
-			*dst = *dupe
+			dst = dupe
 		}
 		return
 	}
 
-	if dst.File == nil && src.File != nil {
-		file := *src.File
-		dst.File = &file
+	if dst.Template == nil {
+		dst.Template = src.Template
 	}
-	// Unlike the merging logic for the Command field, we don't want to let a
-	// default File value override when the input file has that field set to an
-	// empty string. Interpret this as user intention. If the user intends to
-	// let source File value be overridden by a default File value, then the
-	// corresponding field in the input file should be omitted entirely.
+
+	if len(dst.Args) < 1 {
+		dst.Args = duplicateStrings(src.Args)
+	}
 }
 
 func duplicatePasswordConfig(in *PasswordConfig) (out *PasswordConfig) {
@@ -96,10 +97,25 @@ func duplicatePasswordConfig(in *PasswordConfig) (out *PasswordConfig) {
 		return
 	}
 
-	if in.File != nil {
-		file := *in.File
-		out.File = &file
+	out = &PasswordConfig{
+		Template: duplicateStringPointer(in.Template),
+		Args:     duplicateStrings(in.Args),
 	}
 
+	return
+}
+
+func duplicateStrings(in []string) (out []string) {
+	out = make([]string, len(in))
+	copy(out, in)
+	return
+}
+
+func duplicateStringPointer(in *string) (out *string) {
+	if in == nil {
+		return
+	}
+	val := *in
+	out = &val
 	return
 }
