@@ -3,6 +3,7 @@ package exec_test
 import (
 	"context"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/rafaelespinoza/wrestic/internal/config"
@@ -16,6 +17,8 @@ func TestResticBatch(t *testing.T) {
 		configDir            string
 		subcommand           string
 		run                  bool
+		expectErr            bool
+		expectErrMsgContains string // if we're expecting an error, what should the message mention?
 		expectedSinkData     []string
 		expectedReceivedArgs [][]string
 	}{
@@ -27,7 +30,10 @@ func TestResticBatch(t *testing.T) {
 						"foo": {
 							Path: "foo",
 							Defaults: config.Defaults{
-								PasswordConfig: &config.PasswordConfig{File: pointToFilename("secrets/foo")},
+								PasswordConfig: &config.PasswordConfig{
+									Template: pointToString("cat {{ filename (index . 0) }}"),
+									Args:     []string{"secrets/foo"},
+								},
 							},
 						},
 					},
@@ -37,7 +43,10 @@ func TestResticBatch(t *testing.T) {
 						"bar": {
 							Path: "bar",
 							Defaults: config.Defaults{
-								PasswordConfig: &config.PasswordConfig{File: pointToFilename("secrets/bar")},
+								PasswordConfig: &config.PasswordConfig{
+									Template: pointToString("cat {{ filename (index . 0) }}"),
+									Args:     []string{"secrets/bar"},
+								},
 							},
 						},
 					},
@@ -46,9 +55,9 @@ func TestResticBatch(t *testing.T) {
 			configDir:  "/tmp",
 			subcommand: "test",
 			expectedSinkData: []string{
-				`# test --foo=123 deadbeef --bar --repo=foo --password-file='/tmp/secrets/foo'
+				`# test --foo=123 deadbeef --bar --repo=foo --password-command='cat /tmp/secrets/foo'
 `,
-				`# test --foo=123 deadbeef --bar --repo=bar --password-file='/tmp/secrets/bar'
+				`# test --foo=123 deadbeef --bar --repo=bar --password-command='cat /tmp/secrets/bar'
 `,
 			},
 			expectedReceivedArgs: [][]string{},
@@ -61,7 +70,10 @@ func TestResticBatch(t *testing.T) {
 						"foo": {
 							Path: "foo",
 							Defaults: config.Defaults{
-								PasswordConfig: &config.PasswordConfig{File: pointToFilename("secrets/foo")},
+								PasswordConfig: &config.PasswordConfig{
+									Template: pointToString("cat {{ filename (index . 0) }}"),
+									Args:     []string{"secrets/foo"},
+								},
 							},
 						},
 					},
@@ -71,7 +83,10 @@ func TestResticBatch(t *testing.T) {
 						"bar": {
 							Path: "bar",
 							Defaults: config.Defaults{
-								PasswordConfig: &config.PasswordConfig{File: pointToFilename("secrets/bar")},
+								PasswordConfig: &config.PasswordConfig{
+									Template: pointToString("cat {{ filename (index . 0) }}"),
+									Args:     []string{"secrets/bar"},
+								},
 							},
 						},
 					},
@@ -81,53 +96,153 @@ func TestResticBatch(t *testing.T) {
 			subcommand: "test",
 			run:        true,
 			expectedSinkData: []string{
-				`# test --foo=123 deadbeef --bar --repo=foo --password-file='/tmp/secrets/foo'
+				`# test --foo=123 deadbeef --bar --repo=foo --password-command='cat /tmp/secrets/foo'
 `,
-				`# test --foo=123 deadbeef --bar --repo=bar --password-file='/tmp/secrets/bar'
+				`# test --foo=123 deadbeef --bar --repo=bar --password-command='cat /tmp/secrets/bar'
 `,
 			},
 			expectedReceivedArgs: [][]string{
-				{"test", "--foo=123", "deadbeef", "--bar", "--repo=foo", `--password-file=/tmp/secrets/foo`},
-				{"test", "--foo=123", "deadbeef", "--bar", "--repo=bar", `--password-file=/tmp/secrets/bar`},
+				{"test", "--foo=123", "deadbeef", "--bar", "--repo=foo", `--password-command=cat /tmp/secrets/foo`},
+				{"test", "--foo=123", "deadbeef", "--bar", "--repo=bar", `--password-command=cat /tmp/secrets/bar`},
 			},
 		},
 		{
-			name: "PasswordConfig.File has spaces",
+			name: "PasswordConfig.Args absolute paths",
+			datastores: []config.Datastore{
+				{
+					Destinations: map[string]config.Destination{
+						"foo": { // Args are filenames without spaces
+							Path: "foo",
+							Defaults: config.Defaults{
+								PasswordConfig: &config.PasswordConfig{
+									Template: pointToString(`age -d -i {{ filename (index . 0) }} {{ filename (index . 1) }}`),
+									Args:     []string{"/elsewhere/no_spaces/secrets/id", "/elsewhere/no_spaces/secrets/foo"},
+								},
+							},
+						},
+					},
+				},
+				{
+					Destinations: map[string]config.Destination{
+						"bar": { // Args are filenames with spaces
+							Path: "bar",
+							Defaults: config.Defaults{
+								PasswordConfig: &config.PasswordConfig{
+									Template: pointToString(`age -d -i {{ filename (index . 0) }} {{ filename (index . 1) }}`),
+									Args:     []string{"/elsewhere/has spaces/secrets/id", "/elsewhere/has spaces/secrets/bar"},
+								},
+							},
+						},
+					},
+				},
+			},
+			configDir:  "/tmp/config_place",
+			subcommand: "test",
+			run:        true,
+			expectedSinkData: []string{
+				`# test --foo=123 deadbeef --bar --repo=foo --password-command='age -d -i /elsewhere/no_spaces/secrets/id /elsewhere/no_spaces/secrets/foo'
+`,
+				`# test --foo=123 deadbeef --bar --repo=bar --password-command='age -d -i "/elsewhere/has spaces/secrets/id" "/elsewhere/has spaces/secrets/bar"'
+`,
+			},
+			expectedReceivedArgs: [][]string{
+				{"test", "--foo=123", "deadbeef", "--bar", "--repo=foo", `--password-command=age -d -i /elsewhere/no_spaces/secrets/id /elsewhere/no_spaces/secrets/foo`},
+				{"test", "--foo=123", "deadbeef", "--bar", "--repo=bar", `--password-command=age -d -i "/elsewhere/has spaces/secrets/id" "/elsewhere/has spaces/secrets/bar"`},
+			},
+		},
+		{
+			name: "PasswordConfig.Args relative paths",
+			datastores: []config.Datastore{
+				{
+					Destinations: map[string]config.Destination{
+						"foo": { // Args are filenames without spaces
+							Path: "foo",
+							Defaults: config.Defaults{
+								PasswordConfig: &config.PasswordConfig{
+									Template: pointToString(`age -d -i {{ filename (index . 0) }} {{ filename (index . 1) }}`),
+									Args:     []string{"secrets/id", "secrets/foo"},
+								},
+							},
+						},
+					},
+				},
+				{
+					Destinations: map[string]config.Destination{
+						"bar": { // Args are filenames with spaces
+							Path: "bar",
+							Defaults: config.Defaults{
+								PasswordConfig: &config.PasswordConfig{
+									Template: pointToString(`age -d -i {{ filename (index . 0) }} {{ filename (index . 1) }}`),
+									Args:     []string{"secret id", "secret bar"},
+								},
+							},
+						},
+					},
+				},
+			},
+			configDir:  "/tmp/config_place",
+			subcommand: "test",
+			run:        true,
+			expectedSinkData: []string{
+				`# test --foo=123 deadbeef --bar --repo=foo --password-command='age -d -i /tmp/config_place/secrets/id /tmp/config_place/secrets/foo'
+`,
+				`# test --foo=123 deadbeef --bar --repo=bar --password-command='age -d -i "/tmp/config_place/secret id" "/tmp/config_place/secret bar"'
+`,
+			},
+			expectedReceivedArgs: [][]string{
+				{"test", "--foo=123", "deadbeef", "--bar", "--repo=foo", `--password-command=age -d -i /tmp/config_place/secrets/id /tmp/config_place/secrets/foo`},
+				{"test", "--foo=123", "deadbeef", "--bar", "--repo=bar", `--password-command=age -d -i "/tmp/config_place/secret id" "/tmp/config_place/secret bar"`},
+			},
+		},
+		{
+			name: "PasswordConfig.Template invalid",
 			datastores: []config.Datastore{
 				{
 					Destinations: map[string]config.Destination{
 						"foo": {
 							Path: "foo",
 							Defaults: config.Defaults{
-								PasswordConfig: &config.PasswordConfig{File: pointToFilename("secrets/foo")},
+								PasswordConfig: &config.PasswordConfig{
+									Template: pointToString(`age -d -i {{ filename (does_not_work . 0) }} {{ filename (index . 1) }}`),
+									Args:     []string{"secrets/id", "secrets/foo"},
+								},
 							},
 						},
 					},
 				},
+			},
+			configDir:            "/tmp/config_place",
+			subcommand:           "test",
+			run:                  true,
+			expectErr:            true,
+			expectErrMsgContains: "template is invalid",
+			expectedSinkData:     []string{},
+			expectedReceivedArgs: [][]string{},
+		},
+		{
+			name: "PasswordConfig.Args invalid",
+			datastores: []config.Datastore{
 				{
 					Destinations: map[string]config.Destination{
-						"bar": {
-							Path: "bar",
+						"foo": {
+							Path: "foo",
 							Defaults: config.Defaults{
-								PasswordConfig: &config.PasswordConfig{File: pointToFilename("secret bar")},
+								PasswordConfig: &config.PasswordConfig{
+									Template: pointToString(`age -d -i {{ filename (index . 0) }} {{ filename (index . 1) }}`),
+									Args:     []string{"secrets/id"},
+								},
 							},
 						},
 					},
 				},
 			},
-			configDir:  "/Users/username/Library/Application Support/wrestic",
-			subcommand: "test",
-			run:        true,
-			expectedSinkData: []string{
-				`# test --foo=123 deadbeef --bar --repo=foo --password-file='"/Users/username/Library/Application Support/wrestic/secrets/foo"'
-`,
-				`# test --foo=123 deadbeef --bar --repo=bar --password-file='"/Users/username/Library/Application Support/wrestic/secret bar"'
-`,
-			},
-			expectedReceivedArgs: [][]string{
-				{"test", "--foo=123", "deadbeef", "--bar", "--repo=foo", `--password-file="/Users/username/Library/Application Support/wrestic/secrets/foo"`},
-				{"test", "--foo=123", "deadbeef", "--bar", "--repo=bar", `--password-file="/Users/username/Library/Application Support/wrestic/secret bar"`},
-			},
+			configDir:            "/tmp/config_place",
+			subcommand:           "test",
+			run:                  true,
+			expectErr:            true,
+			expectErrMsgContains: "template does not agree with args",
+			expectedSinkData:     []string{},
+			expectedReceivedArgs: [][]string{},
 		},
 		{
 			name: "Subcommand=backup",
@@ -138,7 +253,10 @@ func TestResticBatch(t *testing.T) {
 						"foo": {
 							Path: "foo",
 							Defaults: config.Defaults{
-								PasswordConfig: &config.PasswordConfig{File: pointToFilename("secrets/foo")},
+								PasswordConfig: &config.PasswordConfig{
+									Template: pointToString(`age -d -i {{ filename (index . 0) }} {{ filename (index . 1) }}`),
+									Args:     []string{"secrets/id", "secrets/foo"},
+								},
 							},
 						},
 					},
@@ -149,17 +267,21 @@ func TestResticBatch(t *testing.T) {
 						"bar": {
 							Path: "bar",
 							Defaults: config.Defaults{
-								PasswordConfig: &config.PasswordConfig{File: pointToFilename("secrets/bar")},
+								PasswordConfig: &config.PasswordConfig{
+									Template: pointToString(`age -d -i {{ filename (index . 0) }} {{ filename (index . 1) }}`),
+									Args:     []string{"secrets/id", "secrets/bar"},
+								},
 							},
 						},
 					},
 				},
 			},
+			configDir:  "/tmp/config_place",
 			subcommand: "backup",
 			expectedSinkData: []string{
-				`# backup --foo=123 deadbeef --bar --repo=foo --password-file='secrets/foo' /usr/foo
+				`# backup --foo=123 deadbeef --bar --repo=foo --password-command='age -d -i /tmp/config_place/secrets/id /tmp/config_place/secrets/foo' /usr/foo
 `,
-				`# backup --foo=123 deadbeef --bar --repo=bar --password-file='secrets/bar' /etc/bar
+				`# backup --foo=123 deadbeef --bar --repo=bar --password-command='age -d -i /tmp/config_place/secrets/id /tmp/config_place/secrets/bar' /etc/bar
 `,
 			},
 			expectedReceivedArgs: [][]string{},
@@ -188,8 +310,12 @@ func TestResticBatch(t *testing.T) {
 			}
 
 			err := batch.Do(context.Background(), test.datastores)
-			if err != nil {
+			if err != nil && !test.expectErr {
 				t.Fatal(err)
+			} else if err == nil && test.expectErr {
+				t.Error("expected an error")
+			} else if err != nil && test.expectErr && !strings.Contains(err.Error(), test.expectErrMsgContains) {
+				t.Errorf("expected error message %q to contain %q", err, test.expectErrMsgContains)
 			}
 
 			if len(sink.data) != len(test.expectedSinkData) {
@@ -249,7 +375,7 @@ func TestResticBatchNewRestic(t *testing.T) {
 				"bar": {
 					Path: "bar",
 					Defaults: config.Defaults{
-						PasswordConfig: &config.PasswordConfig{File: pointToFilename("bar")},
+						PasswordConfig: &config.PasswordConfig{Template: pointToString("foo"), Args: []string{"bar"}},
 					},
 				},
 			}
@@ -283,4 +409,4 @@ func (c *Command) Run(ctx context.Context, args ...string) error {
 	return c.RunResp(ctx, args...)
 }
 
-func pointToFilename(in string) (out *string) { return &in }
+func pointToString(in string) (out *string) { return &in }

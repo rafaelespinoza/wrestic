@@ -93,7 +93,7 @@ func printArgs(w io.Writer, args ...string) {
 	for _, tuple := range args {
 		arg := tuple
 
-		if strings.HasPrefix(tuple, passwordCommandFlagKey) || strings.HasPrefix(tuple, passwordFileFlagKey) {
+		if strings.HasPrefix(tuple, pwcmdFlagKey) {
 			arg = quotePasswordFlag(tuple)
 		}
 
@@ -133,8 +133,6 @@ func (r restic) Run(ctx context.Context, args ...string) (err error) {
 	cmd.Stdout = r.outSink
 	cmd.Stderr = r.errSink
 
-	// Mark the start of execution, but use different fields data here than the
-	// logging event for after execution.
 	err = cmd.Run()
 	return
 }
