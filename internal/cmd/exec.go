@@ -4,9 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 
-	"github.com/rafaelespinoza/wrestic/internal/config"
 	"github.com/rafaelespinoza/wrestic/internal/exec"
 	"github.com/urfave/cli/v2"
 )
@@ -106,20 +104,4 @@ func makeExecAction(subcmd string) cli.ActionFunc {
 
 		return batch.Do(c.Context, datastores)
 	}
-}
-
-func fetchDatastores(configDir string, storenames, destnames []string) (out []config.Datastore, err error) {
-	file, err := os.Open(filepath.Clean(filepath.Join(configDir, "wrestic.toml")))
-	if err != nil {
-		return
-	}
-	defer func() { _ = file.Close() }()
-
-	params, err := config.Parse(file)
-	if err != nil {
-		return
-	}
-
-	out = config.SelectDatastores(params.Datastores, storenames, destnames)
-	return
 }

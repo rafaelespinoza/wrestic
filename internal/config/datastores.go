@@ -47,9 +47,9 @@ type Datastore struct {
 	// Datastore's place in the config data. The intention is to ease
 	// maintenance of the configuration file.
 	Name         string                 `toml:"-"`
+	Defaults     Defaults               `toml:"defaults"`
 	Sources      []Source               `toml:"sources"`
 	Destinations map[string]Destination `toml:"destinations"`
-	Defaults     Defaults               `toml:"defaults"`
 
 	parent *Defaults
 }

@@ -49,6 +49,11 @@ func Parse(r io.Reader) (out Params, err error) {
 	return
 }
 
+func EncodeTOML(w io.Writer, in any) error {
+	enc := toml.NewEncoder(w)
+	return enc.Encode(in)
+}
+
 type Params struct {
 	Defaults   Defaults             `toml:"defaults"`
 	Datastores map[string]Datastore `toml:"datastores"`

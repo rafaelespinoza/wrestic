@@ -5,8 +5,8 @@ type Destination struct {
 	// Destination's place in the config data. The intention is to ease
 	// maintenance of the configuration file.
 	Name     string   `toml:"-"`
-	Path     string   `toml:"path"`
 	Defaults Defaults `toml:"defaults"`
+	Path     string   `toml:"path"`
 
 	parent *Datastore
 }
