@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"strings"
 
 	"github.com/rafaelespinoza/wrestic/internal/config"
 )
@@ -53,57 +52,6 @@ func (b ResticBatch) Do(ctx context.Context, datastores []config.Datastore) erro
 	}
 
 	return nil
-}
-
-func (b ResticBatch) buildArgs(dest config.Destination, srcPaths ...config.Source) ([]string, error) {
-	// Might need to append source paths that are only for this destination,
-	// so let's just duplicate the args now to keep shared data untouched.
-	out := make([]string, len(b.Args))
-	copy(out, b.Args)
-
-	out = append([]string{b.Subcommand}, out...)
-	out = append(out, "--repo="+dest.Path)
-
-	defaults := dest.Merge()
-
-	if pwFlag, err := makePasswordFlag(b.ConfigDir, defaults.PasswordConfig); err != nil {
-		return nil, err
-	} else {
-		out = append(out, pwFlag)
-	}
-
-	if b.Subcommand == "backup" {
-		// It'll probably be more natural to put paths or directories at the end
-		// of the slice.
-		for _, src := range srcPaths {
-			out = append(out, src.Path)
-		}
-	}
-
-	return out, nil
-}
-
-func printArgs(w io.Writer, args ...string) {
-	var bld strings.Builder
-
-	// Reduce chances of mistakenly executing the command by outputting a
-	// shell comment.
-	bld.WriteRune('#')
-
-	for _, tuple := range args {
-		arg := tuple
-
-		if strings.HasPrefix(tuple, pwcmdFlagKey) {
-			arg = quotePasswordFlag(tuple)
-		}
-
-		bld.WriteString(` ` + arg)
-
-	}
-
-	bld.WriteRune('\n')
-
-	fmt.Fprintf(w, bld.String())
 }
 
 // A Command is an external command to execute with args.

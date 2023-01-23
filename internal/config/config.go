@@ -44,22 +44,26 @@ type Params struct {
 
 type Defaults struct {
 	PasswordConfig *PasswordConfig `toml:"password-config"`
+	Restic         *ResticDefaults `toml:"restic"`
 }
 
-func mergeDefaults(dst, src *Defaults) {
+func mergeDefaults(dst, src *Defaults) error {
 	if (dst == nil && src == nil) || (dst != nil && src == nil) {
-		return
+		return nil
 	} else if dst == nil && src != nil {
 		dupe := duplicateDefaults(*src)
 		dst = &dupe
-		return
+		return nil
 	}
 
 	mergePasswordConfig(dst.PasswordConfig, src.PasswordConfig)
+	return mergeResticDefaults(dst.Restic, src.Restic)
 }
 
 func duplicateDefaults(in Defaults) (out Defaults) {
 	out.PasswordConfig = duplicatePasswordConfig(in.PasswordConfig)
+	out.Restic = duplicateResticDefaults(in.Restic)
+
 	return
 }
 
@@ -97,8 +101,12 @@ func duplicatePasswordConfig(in *PasswordConfig) (out *PasswordConfig) {
 		return
 	}
 
+	var tmpl *string
+	if in.Template != nil {
+		tmpl = in.Template
+	}
 	out = &PasswordConfig{
-		Template: duplicateStringPointer(in.Template),
+		Template: tmpl,
 		Args:     duplicateStrings(in.Args),
 	}
 
@@ -111,11 +119,18 @@ func duplicateStrings(in []string) (out []string) {
 	return
 }
 
-func duplicateStringPointer(in *string) (out *string) {
-	if in == nil {
-		return
+func duplicateOptionMap(in []map[string]string) (out []map[string]string) {
+	out = make([]map[string]string, len(in))
+
+	for i, sources := range in {
+		dest := make(map[string]string)
+
+		for subkey, subval := range sources {
+			dest[subkey] = subval
+		}
+
+		out[i] = dest
 	}
-	val := *in
-	out = &val
+
 	return
 }

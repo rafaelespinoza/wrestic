@@ -51,10 +51,10 @@ type Datastore struct {
 	parent *Defaults
 }
 
-func (d *Datastore) merge() Datastore {
-	out, _ := makeDatastore(*d)
-	mergeDefaults(&out.Defaults, d.parent)
-	return out
+func (d *Datastore) merge() (out Datastore, err error) {
+	out, _ = makeDatastore(*d)
+	err = mergeDefaults(&out.Defaults, d.parent)
+	return
 }
 
 // makeDatastore also returns a boolean to signal to the caller that at least 1
@@ -93,33 +93,4 @@ func makeDatastore(in Datastore, destNames ...string) (out Datastore, destMatch 
 
 type Source struct {
 	Path string `toml:"path"`
-}
-
-type Destination struct {
-	Name     string   `toml:"name"`
-	Path     string   `toml:"path"`
-	Defaults Defaults `toml:"defaults"`
-
-	parent *Datastore
-}
-
-func (d *Destination) Merge() Defaults {
-	var srcDefaults Defaults
-	if d.parent != nil {
-		mergedParent := d.parent.merge()
-		d.parent = &mergedParent
-		srcDefaults = d.parent.Defaults
-	}
-
-	out := duplicateDestination(*d)
-	mergeDefaults(&out.Defaults, &srcDefaults)
-	return out.Defaults
-}
-
-func duplicateDestination(in Destination) (out Destination) {
-	out.Name = in.Name
-	out.Path = in.Path
-	out.Defaults = duplicateDefaults(in.Defaults)
-	out.parent = in.parent
-	return
 }

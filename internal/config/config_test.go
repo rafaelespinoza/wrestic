@@ -25,7 +25,7 @@ func TestParse(t *testing.T) {
 
 		expectedDefaults := config.Defaults{
 			PasswordConfig: &config.PasswordConfig{
-				Template: newString("cat {{ filename (index . 0) }}"),
+				Template: pointTo("cat {{ filename (index . 0) }}"),
 			},
 		}
 
@@ -101,7 +101,10 @@ file = 'secrets/defaultpassword'
 `
 		actual, err := config.Parse(strings.NewReader(input))
 		if err == nil {
-			t.Error("expected an error but got none")
+			t.Fatal("expected an error but got none")
+		}
+		if !strings.Contains(err.Error(), "unexpected keys") {
+			t.Errorf("expected error message %q to contain %q", err, "unexpected keys")
 		}
 
 		testDefaults(t, "", actual.Defaults, config.Defaults{})
@@ -122,7 +125,7 @@ args = ['secrets/id', 'secrets/foo']
 		expected := config.Params{
 			Defaults: config.Defaults{
 				PasswordConfig: &config.PasswordConfig{
-					Template: newString(`age -d -i {{ filename (index . 0) }} {{ filename (index . 1) }}`),
+					Template: pointTo(`age -d -i {{ filename (index . 0) }} {{ filename (index . 1) }}`),
 					Args:     []string{"secrets/id", "secrets/foo"},
 				},
 			},
@@ -133,10 +136,15 @@ args = ['secrets/id', 'secrets/foo']
 }
 
 func testDefaults(t *testing.T, errPrefix string, got, exp config.Defaults) {
-	testPasswordConfig(t, errPrefix, got.PasswordConfig, exp.PasswordConfig)
+	t.Helper()
+
+	testPasswordConfig(t, errPrefix+".PasswordConfig", got.PasswordConfig, exp.PasswordConfig)
+	testResticDefaults(t, errPrefix+".Restic", got.Restic, exp.Restic)
 }
 
 func testPasswordConfig(t *testing.T, errPrefix string, got, exp *config.PasswordConfig) {
+	t.Helper()
+
 	if got == nil && exp == nil {
 		return // test OK
 	} else if got != nil && exp == nil {
@@ -145,19 +153,37 @@ func testPasswordConfig(t *testing.T, errPrefix string, got, exp *config.Passwor
 		t.Fatalf("%s got %v, expected %#v", errPrefix, got, *exp)
 	}
 
-	testStringPointer(t, errPrefix+".PasswordConfig.Template", got.Template, exp.Template)
-	testStrings(t, errPrefix+".PasswordConfig.Args", got.Args, exp.Args)
+	testStringPointer(t, errPrefix+".Template", got.Template, exp.Template)
+	testStrings(t, errPrefix+".Args", got.Args, exp.Args)
+}
+
+// A primitive is any builtin type that is also the field type on a struct type
+// from this package.
+type primitive interface {
+	bool | string | int | uint
+}
+
+// pointTo is a convenience func for setting up data in a test.
+func pointTo[P primitive](in P) *P { return &in }
+func pointToStrings(in ...string) *[]string {
+	if len(in) < 1 {
+		return &[]string{}
+	}
+
+	return &in
 }
 
 func testStringPointer(t *testing.T, errPrefix string, got, exp *string) {
+	t.Helper()
+
 	if got == nil && exp == nil {
-		return // test OK
+		// test OK
 	} else if got != nil && exp == nil {
-		t.Errorf("%s got %q, expected %v", errPrefix, *got, exp)
+		t.Errorf("%s got %v, expected %v", errPrefix, *got, exp)
 	} else if got == nil && exp != nil {
-		t.Errorf("%s got %v, expected %q", errPrefix, got, *exp)
-	} else if *got != *exp {
-		t.Errorf("%s got %q, expected %q", errPrefix, *got, *exp)
+		t.Errorf("%s got %v, expected %v", errPrefix, got, *exp)
+	} else if got != nil && exp != nil && *got != *exp {
+		t.Errorf("%s got %v, expected %v", errPrefix, *got, *exp)
 	}
 }
 
@@ -165,7 +191,7 @@ func testStrings(t *testing.T, errPrefix string, actual, expected []string) {
 	t.Helper()
 
 	if len(actual) != len(expected) {
-		t.Errorf("%s wrong number of Flags; got %d, expected %d", errPrefix, len(actual), len(expected))
+		t.Errorf("%s wrong length; got %d, expected %d", errPrefix, len(actual), len(expected))
 		return
 	}
 

@@ -55,9 +55,9 @@ func TestResticBatch(t *testing.T) {
 			configDir:  "/tmp",
 			subcommand: "test",
 			expectedSinkData: []string{
-				`# test --foo=123 deadbeef --bar --repo=foo --password-command='cat /tmp/secrets/foo'
+				`# test --repo=foo --password-command='cat /tmp/secrets/foo' --foo=123 deadbeef --bar
 `,
-				`# test --foo=123 deadbeef --bar --repo=bar --password-command='cat /tmp/secrets/bar'
+				`# test --repo=bar --password-command='cat /tmp/secrets/bar' --foo=123 deadbeef --bar
 `,
 			},
 			expectedReceivedArgs: [][]string{},
@@ -96,14 +96,14 @@ func TestResticBatch(t *testing.T) {
 			subcommand: "test",
 			run:        true,
 			expectedSinkData: []string{
-				`# test --foo=123 deadbeef --bar --repo=foo --password-command='cat /tmp/secrets/foo'
+				`# test --repo=foo --password-command='cat /tmp/secrets/foo' --foo=123 deadbeef --bar
 `,
-				`# test --foo=123 deadbeef --bar --repo=bar --password-command='cat /tmp/secrets/bar'
+				`# test --repo=bar --password-command='cat /tmp/secrets/bar' --foo=123 deadbeef --bar
 `,
 			},
 			expectedReceivedArgs: [][]string{
-				{"test", "--foo=123", "deadbeef", "--bar", "--repo=foo", `--password-command=cat /tmp/secrets/foo`},
-				{"test", "--foo=123", "deadbeef", "--bar", "--repo=bar", `--password-command=cat /tmp/secrets/bar`},
+				{"test", "--repo=foo", `--password-command=cat /tmp/secrets/foo`, "--foo=123", "deadbeef", "--bar"},
+				{"test", "--repo=bar", `--password-command=cat /tmp/secrets/bar`, "--foo=123", "deadbeef", "--bar"},
 			},
 		},
 		{
@@ -140,14 +140,14 @@ func TestResticBatch(t *testing.T) {
 			subcommand: "test",
 			run:        true,
 			expectedSinkData: []string{
-				`# test --foo=123 deadbeef --bar --repo=foo --password-command='age -d -i /elsewhere/no_spaces/secrets/id /elsewhere/no_spaces/secrets/foo'
+				`# test --repo=foo --password-command='age -d -i /elsewhere/no_spaces/secrets/id /elsewhere/no_spaces/secrets/foo' --foo=123 deadbeef --bar
 `,
-				`# test --foo=123 deadbeef --bar --repo=bar --password-command='age -d -i "/elsewhere/has spaces/secrets/id" "/elsewhere/has spaces/secrets/bar"'
+				`# test --repo=bar --password-command='age -d -i "/elsewhere/has spaces/secrets/id" "/elsewhere/has spaces/secrets/bar"' --foo=123 deadbeef --bar
 `,
 			},
 			expectedReceivedArgs: [][]string{
-				{"test", "--foo=123", "deadbeef", "--bar", "--repo=foo", `--password-command=age -d -i /elsewhere/no_spaces/secrets/id /elsewhere/no_spaces/secrets/foo`},
-				{"test", "--foo=123", "deadbeef", "--bar", "--repo=bar", `--password-command=age -d -i "/elsewhere/has spaces/secrets/id" "/elsewhere/has spaces/secrets/bar"`},
+				{"test", "--repo=foo", `--password-command=age -d -i /elsewhere/no_spaces/secrets/id /elsewhere/no_spaces/secrets/foo`, "--foo=123", "deadbeef", "--bar"},
+				{"test", "--repo=bar", `--password-command=age -d -i "/elsewhere/has spaces/secrets/id" "/elsewhere/has spaces/secrets/bar"`, "--foo=123", "deadbeef", "--bar"},
 			},
 		},
 		{
@@ -184,14 +184,14 @@ func TestResticBatch(t *testing.T) {
 			subcommand: "test",
 			run:        true,
 			expectedSinkData: []string{
-				`# test --foo=123 deadbeef --bar --repo=foo --password-command='age -d -i /tmp/config_place/secrets/id /tmp/config_place/secrets/foo'
+				`# test --repo=foo --password-command='age -d -i /tmp/config_place/secrets/id /tmp/config_place/secrets/foo' --foo=123 deadbeef --bar
 `,
-				`# test --foo=123 deadbeef --bar --repo=bar --password-command='age -d -i "/tmp/config_place/secret id" "/tmp/config_place/secret bar"'
+				`# test --repo=bar --password-command='age -d -i "/tmp/config_place/secret id" "/tmp/config_place/secret bar"' --foo=123 deadbeef --bar
 `,
 			},
 			expectedReceivedArgs: [][]string{
-				{"test", "--foo=123", "deadbeef", "--bar", "--repo=foo", `--password-command=age -d -i /tmp/config_place/secrets/id /tmp/config_place/secrets/foo`},
-				{"test", "--foo=123", "deadbeef", "--bar", "--repo=bar", `--password-command=age -d -i "/tmp/config_place/secret id" "/tmp/config_place/secret bar"`},
+				{"test", "--repo=foo", `--password-command=age -d -i /tmp/config_place/secrets/id /tmp/config_place/secrets/foo`, "--foo=123", "deadbeef", "--bar"},
+				{"test", "--repo=bar", `--password-command=age -d -i "/tmp/config_place/secret id" "/tmp/config_place/secret bar"`, "--foo=123", "deadbeef", "--bar"},
 			},
 		},
 		{
@@ -279,12 +279,45 @@ func TestResticBatch(t *testing.T) {
 			configDir:  "/tmp/config_place",
 			subcommand: "backup",
 			expectedSinkData: []string{
-				`# backup --foo=123 deadbeef --bar --repo=foo --password-command='age -d -i /tmp/config_place/secrets/id /tmp/config_place/secrets/foo' /usr/foo
+				`# backup --repo=foo --password-command='age -d -i /tmp/config_place/secrets/id /tmp/config_place/secrets/foo' --foo=123 deadbeef --bar /usr/foo
 `,
-				`# backup --foo=123 deadbeef --bar --repo=bar --password-command='age -d -i /tmp/config_place/secrets/id /tmp/config_place/secrets/bar' /etc/bar
+				`# backup --repo=bar --password-command='age -d -i /tmp/config_place/secrets/id /tmp/config_place/secrets/bar' --foo=123 deadbeef --bar /etc/bar
 `,
 			},
 			expectedReceivedArgs: [][]string{},
+		},
+		{
+			name: "Subcommand=snapshots",
+			datastores: []config.Datastore{
+				{
+					Sources: []config.Source{{Path: "/usr/foo"}},
+					Destinations: map[string]config.Destination{
+						"foo": {
+							Path: "foo",
+							Defaults: config.Defaults{
+								PasswordConfig: &config.PasswordConfig{
+									Template: pointToString(`age -d -i {{ filename (index . 0) }} {{ filename (index . 1) }}`),
+									Args:     []string{"secrets/id", "secrets/foo"},
+								},
+								Restic: &config.ResticDefaults{
+									Global:    &config.ResticGlobal{JSON: pointTo(true)},
+									Snapshots: &config.ResticSnapshots{Compact: pointTo(true)},
+								},
+							},
+						},
+					},
+				},
+			},
+			configDir:  "/tmp/config_place",
+			subcommand: "snapshots",
+			run:        true,
+			expectedSinkData: []string{
+				`# snapshots --repo=foo --password-command='age -d -i /tmp/config_place/secrets/id /tmp/config_place/secrets/foo' --compact=true --json=true --foo=123 deadbeef --bar
+`,
+			},
+			expectedReceivedArgs: [][]string{
+				{"snapshots", "--repo=foo", `--password-command=age -d -i /tmp/config_place/secrets/id /tmp/config_place/secrets/foo`, "--compact=true", "--json=true", "--foo=123", "deadbeef", "--bar"},
+			},
 		},
 	}
 
@@ -410,3 +443,12 @@ func (c *Command) Run(ctx context.Context, args ...string) error {
 }
 
 func pointToString(in string) (out *string) { return &in }
+
+// A primitive is any builtin type that is also the field type on a struct type
+// from this package.
+type primitive interface {
+	bool | string | int | uint
+}
+
+// pointTo is a convenience func for setting up data in a test.
+func pointTo[P primitive](in P) *P { return &in }
