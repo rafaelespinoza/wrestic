@@ -1,5 +1,7 @@
 # wrestic
 
+[![](https://github.com/rafaelespinoza/wrestic/workflows/build/badge.svg)](https://github.com/rafaelespinoza/wrestic/actions)
+
 This is a thin wrapper around [restic](https://github.com/restic/restic).
 
 It's meant to:
