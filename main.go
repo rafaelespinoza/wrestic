@@ -15,7 +15,7 @@ func init() {
 }
 
 func main() {
-	if err := root.Run(context.Background(), os.Args[1:]); err != nil {
+	if err := root.RunContext(context.Background(), os.Args); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
 		os.Exit(1)
 	}

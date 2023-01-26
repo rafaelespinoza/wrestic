@@ -1,13 +1,11 @@
 package cmd
 
 import (
-	"context"
-	"flag"
 	"fmt"
 	"os"
 
-	"github.com/rafaelespinoza/alf"
 	"github.com/rafaelespinoza/wrestic/internal/config"
+	"github.com/urfave/cli/v2"
 )
 
 var defaultConfigDir string
@@ -22,43 +20,31 @@ func init() {
 	defaultConfigDir = dir
 }
 
-func makeConfig(parentName, name string) alf.Directive {
-	fullName := parentName + " " + name
-	var params struct {
-		configDir string
-	}
+func makeConfig(parentName, name string) *cli.Command {
+	out := cli.Command{
+		Name:  name,
+		Usage: "manage application configuration",
+		Description: fmt.Sprintf(`Manage configuration.
 
-	out := alf.Delegator{
-		Description: "manage configuration",
-		Flags:       flag.NewFlagSet(name, flag.ExitOnError),
-		Subs: map[string]alf.Directive{
-			"init": &alf.Command{
-				Description: "initialize configuration directory",
-				Setup: func(_ flag.FlagSet) *flag.FlagSet {
-					flags := flag.NewFlagSet(fullName, flag.ExitOnError)
-					flags.StringVar(&params.configDir, "C", defaultConfigDir, "base configuration directory")
-					flags.Usage = func() {
-						fmt.Fprintf(flags.Output(), `Usage: %s [flags]
+The default configuration directory is:
+	%q`, defaultConfigDir),
 
-Description:
-
-	Prepare configuration directory structure. Some application data, such as
-	encrypted passwords, may also live here.
-
-	The current configuration directory is:
-
-		%q
-
-Flags:
-
-`, fullName, params.configDir)
-						flags.PrintDefaults()
-					}
-
-					return flags
+		Subcommands: []*cli.Command{
+			{
+				Name:  "init",
+				Usage: "prepare configuration directory structure",
+				Flags: []cli.Flag{
+					&cli.PathFlag{
+						Name:    "config-dir",
+						Aliases: []string{"C"},
+						Usage:   "base configuration directory",
+						Value:   defaultConfigDir,
+					},
 				},
-				Run: func(ctx context.Context) error {
-					dir, err := config.Init(params.configDir)
+				Description: `Prepare configuration directory structure. Some application data, such as
+encrypted passwords, may also live here.`,
+				Action: func(c *cli.Context) error {
+					dir, err := config.Init(c.Path("config-dir"))
 					if err != nil {
 						return err
 					}
@@ -67,26 +53,6 @@ Flags:
 				},
 			},
 		},
-	}
-
-	out.Flags.Usage = func() {
-		fmt.Fprintf(out.Flags.Output(), `Usage: %s subcmd [subflags]
-
-Description:
-
-	Manage configuration.
-
-	The default configuration directory is:
-
-		%q
-
-Subcommands:
-
-	These may have their own set of flags. Put them after the subcommand.
-
-	%v
-
-`, fullName, defaultConfigDir, formatSubcommandsDescriptions(&out))
 	}
 
 	return &out

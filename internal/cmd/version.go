@@ -1,12 +1,10 @@
 package cmd
 
 import (
-	"context"
-	"flag"
 	"fmt"
 	"os"
 
-	"github.com/rafaelespinoza/alf"
+	"github.com/urfave/cli/v2"
 )
 
 // These are pieces of version metadata that can be set through -ldflags.
@@ -19,25 +17,12 @@ var (
 	versionTag        string
 )
 
-func makeVersion(parentName, name string) alf.Directive {
-	fullName := parentName + " " + name
-
-	return &alf.Command{
-		Description: "output build info",
-		Setup: func(p flag.FlagSet) *flag.FlagSet {
-			flags := flag.NewFlagSet(fullName, flag.ExitOnError)
-			flags.Usage = func() {
-				fmt.Fprintf(flags.Output(), `Usage: %s
-
-Description:
-
-	%s displays versioning data about the current binary.
-
-`, fullName, fullName)
-			}
-			return flags
-		},
-		Run: func(_ context.Context) error {
+func makeVersion(parentName, name string) *cli.Command {
+	return &cli.Command{
+		Name:        "version",
+		Usage:       "output build info",
+		Description: `displays versioning data about the current binary.`,
+		Action: func(c *cli.Context) error {
 			const format = "%-12s %s\n"
 			fmt.Fprintf(os.Stdout, format, "BranchName", versionBranchName)
 			fmt.Fprintf(os.Stdout, format, "BuildTime", versionBuildTime)
