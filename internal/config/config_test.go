@@ -25,7 +25,7 @@ func TestParse(t *testing.T) {
 
 		expectedDefaults := config.Defaults{
 			PasswordConfig: &config.PasswordConfig{
-				Template: pointTo("cat {{ filename (index . 0) }}"),
+				Template: pointTo("cat {{ filenameArg 0 }}"),
 			},
 		}
 
@@ -114,8 +114,8 @@ file = 'secrets/defaultpassword'
 		const input = `
 [defaults]
 [defaults.password-config]
-template = 'age -d -i {{ filename (index . 0) }} {{ filename (index . 1) }}'
-args = ['secrets/id', 'secrets/foo']
+template = 'age -d -i {{ filename "secrets/id" }} {{ filenameArg 0 }}'
+args = ['secrets/foo']
 `
 		actual, err := config.Parse(strings.NewReader(input))
 		if err != nil {
@@ -125,8 +125,8 @@ args = ['secrets/id', 'secrets/foo']
 		expected := config.Params{
 			Defaults: config.Defaults{
 				PasswordConfig: &config.PasswordConfig{
-					Template: pointTo(`age -d -i {{ filename (index . 0) }} {{ filename (index . 1) }}`),
-					Args:     []string{"secrets/id", "secrets/foo"},
+					Template: pointTo(`age -d -i {{ filename "secrets/id" }} {{ filenameArg 0 }}`),
+					Args:     []string{"secrets/foo"},
 				},
 			},
 		}

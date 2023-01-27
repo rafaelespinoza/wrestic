@@ -284,13 +284,13 @@ template = '' # user specifies empty value for some reason
 path = 'test'
 
 [datastores.stuff.destinations.foo.defaults.password-config]
-template = 'age -d -i {{ filename (index . 0) }} {{ filename (index . 1) }}'
+template = 'age -d -i {{ filenameArg 0 }} {{ filenameArg 1 }}'
 args = ['/elsewhere/secrets/id', '/elsewhere/secrets/foo']
 `,
 				merge: mergeTestcase{
 					expDefaults: config.Defaults{
 						PasswordConfig: &config.PasswordConfig{
-							Template: pointTo(`age -d -i {{ filename (index . 0) }} {{ filename (index . 1) }}`),
+							Template: pointTo(`age -d -i {{ filenameArg 0 }} {{ filenameArg 1 }}`),
 							Args:     []string{"/elsewhere/secrets/id", "/elsewhere/secrets/foo"},
 						},
 						Restic: &config.ResticDefaults{},
@@ -318,13 +318,13 @@ args = ['/elsewhere/secrets/id', '/elsewhere/secrets/foo']
 path = 'test'
 
 [datastores.stuff.destinations.foo.defaults.password-config]
-template = 'age -d -i {{ filename (index . 0) }} {{ filename (index . 1) }}'
+template = 'age -d -i {{ filenameArg 0 }} {{ filenameArg 1 }}'
 args = ['secrets/id', 'secrets/foo']
 `,
 				merge: mergeTestcase{
 					expDefaults: config.Defaults{
 						PasswordConfig: &config.PasswordConfig{
-							Template: pointTo(`age -d -i {{ filename (index . 0) }} {{ filename (index . 1) }}`),
+							Template: pointTo(`age -d -i {{ filenameArg 0 }} {{ filenameArg 1 }}`),
 							Args:     []string{"secrets/id", "secrets/foo"},
 						},
 						Restic: &config.ResticDefaults{},
@@ -352,13 +352,13 @@ args = ['secrets/id', 'secrets/foo']
 path = 'test'
 
 [datastores.stuff.destinations.foo.defaults.password-config]
-template = 'age -d -i {{ filename (index . 0) }} {{ filename (index . 1) }}'
+template = 'age -d -i {{ filenameArg 0 }} {{ filenameArg 1 }}'
 args = ['secrets/id', 'secrets/foo']
 `,
 				merge: mergeTestcase{
 					expDefaults: config.Defaults{
 						PasswordConfig: &config.PasswordConfig{
-							Template: pointTo(`age -d -i {{ filename (index . 0) }} {{ filename (index . 1) }}`),
+							Template: pointTo(`age -d -i {{ filenameArg 0 }} {{ filenameArg 1 }}`),
 							Args:     []string{"secrets/id", "secrets/foo"},
 						},
 						Restic: &config.ResticDefaults{},
@@ -386,13 +386,13 @@ args = ['secrets/id', 'secrets/foo']
 path = 'test'
 
 [datastores.stuff.destinations.foo.defaults.password-config]
-template = 'age -d -i {{ filename (does_not_work . 0) }} {{ filename (index . 1) }}'
+template = 'age -d -i {{ does_not_work 0 }} {{ filenameArg 1 }}'
 args = ['/elsewhere/secrets/id', '/elsewhere/secrets/foo']
 `,
 				merge: mergeTestcase{
 					expDefaults: config.Defaults{
 						PasswordConfig: &config.PasswordConfig{
-							Template: pointTo(`age -d -i {{ filename (does_not_work . 0) }} {{ filename (index . 1) }}`),
+							Template: pointTo(`age -d -i {{ does_not_work 0 }} {{ filenameArg 1 }}`),
 							Args:     []string{"/elsewhere/secrets/id", "/elsewhere/secrets/foo"},
 						},
 						Restic: &config.ResticDefaults{},
@@ -419,13 +419,13 @@ args = ['/elsewhere/secrets/id', '/elsewhere/secrets/foo']
 path = 'test'
 
 [datastores.stuff.destinations.foo.defaults.password-config]
-template = 'age -d -i {{ filename (index . 0) }} {{ filename (index . 1) }}'
+template = 'age -d -i {{ filenameArg 0 }} {{ filenameArg 1 }}'
 args = ['/elsewhere/secrets/id']
 `,
 				merge: mergeTestcase{
 					expDefaults: config.Defaults{
 						PasswordConfig: &config.PasswordConfig{
-							Template: pointTo(`age -d -i {{ filename (index . 0) }} {{ filename (index . 1) }}`),
+							Template: pointTo(`age -d -i {{ filenameArg 0 }} {{ filenameArg 1 }}`),
 							Args:     []string{"/elsewhere/secrets/id"},
 						},
 						Restic: &config.ResticDefaults{},

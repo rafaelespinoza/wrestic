@@ -2,7 +2,7 @@
 # See testdata.sh for how that works.
 
 [defaults]
-password-config.template = 'cat {{ filename (index . 0) }}'
+password-config.template = 'cat {{ filenameArg 0 }}'
 
 [datastores.stuff]
 

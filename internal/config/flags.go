@@ -25,7 +25,8 @@ func parsePasswordCommand(configDir string, pw *PasswordConfig) (out string, err
 
 	var tmpl *template.Template
 	fns := template.FuncMap{
-		"filename": func(argFilename string) (out string) { return formatFilenameFlag(configDir, argFilename) },
+		"filename":    func(argFilename string) (out string) { return formatFilenameFlag(configDir, argFilename) },
+		"filenameArg": func(argIndex int) (out string) { return formatFilenameFlag(configDir, pw.Args[argIndex]) },
 	}
 
 	tmpl, err = template.New(pwcmdConfigFileKey).Funcs(fns).Parse(*pw.Template)
