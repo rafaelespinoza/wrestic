@@ -12,7 +12,7 @@ import (
 
 func TestParse(t *testing.T) {
 	t.Run("it works", func(t *testing.T) {
-		file, err := os.Open(filepath.Clean(filepath.Join("testdata", "datastores.toml")))
+		file, err := os.Open(filepath.Clean(filepath.Join("testdata", "wrestic.toml")))
 		if err != nil {
 			t.Fatal(err)
 		}

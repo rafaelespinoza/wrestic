@@ -190,7 +190,7 @@ func TestSelectDatastores(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			file, err := os.Open(filepath.Clean(filepath.Join("testdata", "datastores.toml")))
+			file, err := os.Open(filepath.Clean(filepath.Join("testdata", "wrestic.toml")))
 			if err != nil {
 				t.Fatal(err)
 			}

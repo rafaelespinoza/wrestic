@@ -109,7 +109,7 @@ func makeExecAction(subcmd string) cli.ActionFunc {
 }
 
 func fetchDatastores(configDir string, storenames, destnames []string) (out []config.Datastore, err error) {
-	file, err := os.Open(filepath.Clean(filepath.Join(configDir, "datastores.toml")))
+	file, err := os.Open(filepath.Clean(filepath.Join(configDir, "wrestic.toml")))
 	if err != nil {
 		return
 	}

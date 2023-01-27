@@ -28,7 +28,7 @@ restic_init () {
 
 initialize () {
 	mkdir -pv "${SECRETS_DIR}" "${REPOS_ROOT}" "${SRCDATA_ROOT}" && chmod -v 0700 "${WORKDIR_ROOT}"
-	cp -iv "${CURRENT_DIR}/internal/config/testdata/datastores.toml" "${WORKDIR_ROOT}/datastores.toml"
+	cp -iv "${CURRENT_DIR}/internal/config/testdata/wrestic.toml" "${WORKDIR_ROOT}/wrestic.toml"
 
 	# set up password configuration
 	echo "secret_test_a" > "${SECRET_FILE_A}"
