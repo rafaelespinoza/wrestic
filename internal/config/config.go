@@ -26,11 +26,23 @@ func Parse(r io.Reader) (out Params, err error) {
 		// nondeterministic results.
 		currDatastore := datastore
 
+		// Why not specify the Name field in the configuration file? It's easier
+		// to maintain the configuration file if there are less things to
+		// specify. Here, we want the Name to be unique among a set. Naturally,
+		// a map data structure provides this. Use the key as Name here.
+		currDatastore.Name = storeName
+
 		currDatastore.parent = &out.Defaults
 		out.Datastores[storeName] = currDatastore
 
 		for destName, dest := range currDatastore.Destinations {
 			dest.parent = &currDatastore
+			if dest.Name != destName {
+				// Same reasoning as the datastore.Name field described above.
+				// Ease maintainence of the configuration file.
+				dest.Name = destName
+			}
+
 			currDatastore.Destinations[destName] = dest
 		}
 	}

@@ -43,7 +43,10 @@ func SelectDatastores(datastores map[string]Datastore, names, destNames []string
 }
 
 type Datastore struct {
-	Name         string                 `toml:"name"`
+	// Name is not specified in the config file, but is implied by the
+	// Datastore's place in the config data. The intention is to ease
+	// maintenance of the configuration file.
+	Name         string                 `toml:"-"`
 	Sources      []Source               `toml:"sources"`
 	Destinations map[string]Destination `toml:"destinations"`
 	Defaults     Defaults               `toml:"defaults"`

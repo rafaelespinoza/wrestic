@@ -1,7 +1,10 @@
 package config
 
 type Destination struct {
-	Name     string   `toml:"name"`
+	// Name is not specified in the config file, but is implied by the
+	// Destination's place in the config data. The intention is to ease
+	// maintenance of the configuration file.
+	Name     string   `toml:"-"`
 	Path     string   `toml:"path"`
 	Defaults Defaults `toml:"defaults"`
 

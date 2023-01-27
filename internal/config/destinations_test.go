@@ -69,13 +69,11 @@ func TestDestination(t *testing.T) {
 args = ['secrets/defaults']
 
 [datastores.stuff]
-name = 'stuff'
 
 [datastores.stuff.defaults.password-config]
 args = ['secrets/stuff']
 
 [datastores.stuff.destinations.foo]
-name = 'foo'
 path = 'test'
 
 [datastores.stuff.destinations.foo.defaults.password-config]
@@ -98,13 +96,11 @@ args = ['secrets/foo']
 args = ['secrets/defaults']
 
 [datastores.stuff]
-name = 'stuff'
 
 [datastores.stuff.defaults.password-config]
 args = ['secrets/stuff']
 
 [datastores.stuff.destinations.foo]
-name = 'foo'
 path = 'test'
 `,
 				merge: mergeTestcase{
@@ -124,12 +120,10 @@ path = 'test'
 args = ['secrets/defaults']
 
 [datastores.stuff]
-name = 'stuff'
 
 [datastores.stuff.defaults.password-config]
 
 [datastores.stuff.destinations.foo]
-name = 'foo'
 path = 'test'
 
 [datastores.stuff.destinations.foo.defaults.password-config]
@@ -160,13 +154,11 @@ path = 'test'
 template = 'run_defaults'
 
 [datastores.stuff]
-name = 'stuff'
 
 [datastores.stuff.defaults.password-config]
 template = 'run_stuff'
 
 [datastores.stuff.destinations.foo]
-name = 'foo'
 path = 'test'
 
 [datastores.stuff.destinations.foo.defaults.password-config]
@@ -192,13 +184,11 @@ template = 'run_foo'
 template = 'run_defaults'
 
 [datastores.stuff]
-name = 'stuff'
 
 [datastores.stuff.defaults.password-config]
 template = 'run_stuff'
 
 [datastores.stuff.destinations.foo]
-name = 'foo'
 path = 'test'
 
 [datastores.stuff.destinations.foo.defaults.password-config]
@@ -223,12 +213,10 @@ path = 'test'
 template = 'run_defaults'
 
 [datastores.stuff]
-name = 'stuff'
 
 [datastores.stuff.defaults.password-config]
 
 [datastores.stuff.destinations.foo]
-name = 'foo'
 path = 'test'
 
 [datastores.stuff.destinations.foo.defaults.password-config]
@@ -253,12 +241,10 @@ path = 'test'
 template = 'run_defaults'
 
 [datastores.stuff]
-name = 'stuff'
 
 [datastores.stuff.defaults.password-config]
 
 [datastores.stuff.destinations.foo]
-name = 'foo'
 path = 'test'
 
 [datastores.stuff.destinations.foo.defaults.password-config]
@@ -291,12 +277,10 @@ template = '' # user specifies empty value for some reason
 [defaults]
 
 [datastores.stuff]
-name = 'stuff'
 
 [datastores.stuff.defaults.password-config]
 
 [datastores.stuff.destinations.foo]
-name = 'foo'
 path = 'test'
 
 [datastores.stuff.destinations.foo.defaults.password-config]
@@ -327,12 +311,10 @@ args = ['/elsewhere/secrets/id', '/elsewhere/secrets/foo']
 [defaults]
 
 [datastores.stuff]
-name = 'stuff'
 
 [datastores.stuff.defaults.password-config]
 
 [datastores.stuff.destinations.foo]
-name = 'foo'
 path = 'test'
 
 [datastores.stuff.destinations.foo.defaults.password-config]
@@ -363,12 +345,10 @@ args = ['secrets/id', 'secrets/foo']
 [defaults]
 
 [datastores.stuff]
-name = 'stuff'
 
 [datastores.stuff.defaults.password-config]
 
 [datastores.stuff.destinations.foo]
-name = 'foo'
 path = 'test'
 
 [datastores.stuff.destinations.foo.defaults.password-config]
@@ -399,12 +379,10 @@ args = ['secrets/id', 'secrets/foo']
 [defaults]
 
 [datastores.stuff]
-name = 'stuff'
 
 [datastores.stuff.defaults.password-config]
 
 [datastores.stuff.destinations.foo]
-name = 'foo'
 path = 'test'
 
 [datastores.stuff.destinations.foo.defaults.password-config]
@@ -434,12 +412,10 @@ args = ['/elsewhere/secrets/id', '/elsewhere/secrets/foo']
 [defaults]
 
 [datastores.stuff]
-name = 'stuff'
 
 [datastores.stuff.defaults.password-config]
 
 [datastores.stuff.destinations.foo]
-name = 'foo'
 path = 'test'
 
 [datastores.stuff.destinations.foo.defaults.password-config]
