@@ -7,6 +7,8 @@ import (
 	"github.com/BurntSushi/toml"
 )
 
+// Parse not only constructs Params from configuration file data, it also
+// prepares some internal state necessary for merging data later on.
 func Parse(r io.Reader) (out Params, err error) {
 	meta, err := toml.NewDecoder(r).Decode(&out)
 	if err != nil {
@@ -49,16 +51,19 @@ func Parse(r io.Reader) (out Params, err error) {
 	return
 }
 
+// EncodeTOML formats in to TOML and writes to w.
 func EncodeTOML(w io.Writer, in any) error {
 	enc := toml.NewEncoder(w)
 	return enc.Encode(in)
 }
 
+// Params represents the entire config file after it's parsed.
 type Params struct {
 	Defaults   Defaults             `toml:"defaults"`
 	Datastores map[string]Datastore `toml:"datastores"`
 }
 
+// Defaults defines configuration values.
 type Defaults struct {
 	PasswordConfig *PasswordConfig `toml:"password-config"`
 	Restic         *ResticDefaults `toml:"restic"`
@@ -84,9 +89,16 @@ func duplicateDefaults(in Defaults) (out Defaults) {
 	return
 }
 
+// PasswordConfig is a specialized configuration type to manage the
+// password-command flag for restic subcommands.
 type PasswordConfig struct {
-	Template *string  `toml:"template"`
-	Args     []string `toml:"args"`
+	// Template is the password-command (a restic flag) to run. It is parsed by
+	// package text/template from the golang standard library. Arguments may be
+	// interjected into placeholders delimited by "{{" and "}}".
+	Template *string `toml:"template"`
+	// Args are positional arguments that may be referenced by placeholders in a
+	// template string.
+	Args []string `toml:"args"`
 }
 
 func mergePasswordConfig(dst, src *PasswordConfig) {

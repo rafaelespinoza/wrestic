@@ -8,7 +8,12 @@ import (
 	"github.com/imdario/mergo"
 )
 
+// ResticDefaults are any default configuration values for restic subcommands.
+// Asides from Global, which is configuration for shared flags, the struct
+// fields here correspond to flags for a restic subcommand.
 type ResticDefaults struct {
+	// Global refers to any restic flags that are made available for any restic
+	// subcommand. In restic's usage menus, they may appear as "global flags".
 	Global    *ResticGlobal    `toml:"global"`
 	Backup    *ResticBackup    `toml:"backup"`
 	Check     *ResticCheck     `toml:"check"`
