@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"reflect"
 	"sort"
@@ -48,11 +49,15 @@ func parsePasswordCommand(configDir string, pw *PasswordConfig) (out string, err
 }
 
 func formatFilenameFlag(configDir, filename string) string {
+	filename = filepath.Clean(filename)
+
+	if strings.Contains(filename, "$") {
+		filename = os.ExpandEnv(filename)
+	}
+
 	if !filepath.IsAbs(filename) {
 		filename = filepath.Join(configDir, filename)
 	}
-
-	filename = filepath.Clean(filename)
 
 	if strings.Contains(filename, " ") {
 		filename = fmt.Sprintf("%q", filename)

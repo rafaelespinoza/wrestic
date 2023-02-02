@@ -25,12 +25,15 @@ func TestDestination(t *testing.T) {
 	type testCase struct {
 		name              string
 		inputFileContents string
+		envVarVal         string // envVarVal sets WRESTIC_PWCONFIG_TEST for tests that check env var expansion
 		merge             mergeTestcase
 		flags             flagsTestcase
 	}
 
 	runTest := func(t *testing.T, test testCase) {
 		t.Helper()
+
+		t.Setenv("WRESTIC_PWCONFIG_TEST", test.envVarVal)
 
 		params, err := config.Parse(strings.NewReader(test.inputFileContents))
 		if err != nil {
@@ -437,6 +440,64 @@ args = ['/elsewhere/secrets/id']
 					expFlags:          []config.Flag{},
 					expError:          true,
 					expErrMsgContains: "template does not agree with args",
+				},
+			},
+			{
+				name:      "environment variable",
+				envVarVal: "/foo/bar/wrestic",
+				inputFileContents: `
+[datastores.stuff.destinations.foo]
+path = 'test'
+
+[datastores.stuff.destinations.foo.defaults.password-config]
+template = 'age -d -i {{ filename "$WRESTIC_PWCONFIG_TEST/id" }} {{ filenameArg 0 }}'
+args = ['$WRESTIC_PWCONFIG_TEST/key']
+`,
+				merge: mergeTestcase{
+					expDefaults: config.Defaults{
+						PasswordConfig: &config.PasswordConfig{
+							Template: pointTo(`age -d -i {{ filename "$WRESTIC_PWCONFIG_TEST/id" }} {{ filenameArg 0 }}`),
+							Args:     []string{"$WRESTIC_PWCONFIG_TEST/key"},
+						},
+						Restic: &config.ResticDefaults{},
+					},
+				},
+				flags: flagsTestcase{
+					inSubcommand: "ls",
+					inConfigDir:  "/tmp/config_place",
+					expFlags: []config.Flag{
+						{Key: "repo", Val: "test"},
+						{Key: "password-command", Val: `age -d -i /foo/bar/wrestic/id /foo/bar/wrestic/key`},
+					},
+				},
+			},
+			{
+				name:      "environment variable value with spaces",
+				envVarVal: "/Users/foo bar/.config/wrestic",
+				inputFileContents: `
+[datastores.stuff.destinations.foo]
+path = 'test'
+
+[datastores.stuff.destinations.foo.defaults.password-config]
+template = 'age -d -i {{ filename "$WRESTIC_PWCONFIG_TEST/id" }} {{ filenameArg 0 }}'
+args = ['$WRESTIC_PWCONFIG_TEST/key']
+`,
+				merge: mergeTestcase{
+					expDefaults: config.Defaults{
+						PasswordConfig: &config.PasswordConfig{
+							Template: pointTo(`age -d -i {{ filename "$WRESTIC_PWCONFIG_TEST/id" }} {{ filenameArg 0 }}`),
+							Args:     []string{"$WRESTIC_PWCONFIG_TEST/key"},
+						},
+						Restic: &config.ResticDefaults{},
+					},
+				},
+				flags: flagsTestcase{
+					inSubcommand: "ls",
+					inConfigDir:  "/tmp/config_place",
+					expFlags: []config.Flag{
+						{Key: "repo", Val: "test"},
+						{Key: "password-command", Val: `age -d -i "/Users/foo bar/.config/wrestic/id" "/Users/foo bar/.config/wrestic/key"`},
+					},
 				},
 			},
 		}
