@@ -3,8 +3,11 @@ package config
 import (
 	"fmt"
 	"io"
+	"os"
+	"reflect"
 
 	"github.com/BurntSushi/toml"
+	"github.com/imdario/mergo"
 )
 
 // Parse not only constructs Params from configuration file data, it also
@@ -69,23 +72,18 @@ type Defaults struct {
 	Restic         *ResticDefaults `toml:"restic"`
 }
 
-func mergeDefaults(dst, src *Defaults) error {
+func mergeDefaults(dst, src *Defaults) {
 	if (dst == nil && src == nil) || (dst != nil && src == nil) {
-		return nil
-	} else if dst == nil && src != nil {
-		dupe := duplicateDefaults(*src)
-		dst = &dupe
-		return nil
+		return
 	}
 
-	mergePasswordConfig(dst.PasswordConfig, src.PasswordConfig)
-	return mergeResticDefaults(dst.Restic, src.Restic)
+	mergeConfig(dst.PasswordConfig, src.PasswordConfig)
+	mergeConfig(dst.Restic, src.Restic)
 }
 
 func duplicateDefaults(in Defaults) (out Defaults) {
 	out.PasswordConfig = duplicatePasswordConfig(in.PasswordConfig)
 	out.Restic = duplicateResticDefaults(in.Restic)
-
 	return
 }
 
@@ -101,65 +99,65 @@ type PasswordConfig struct {
 	Args []string `toml:"args"`
 }
 
-func mergePasswordConfig(dst, src *PasswordConfig) {
-	if (dst == nil && src == nil) || (dst != nil && src == nil) {
-		return
-	}
-
-	if dst == nil && src != nil {
-		dupe := duplicatePasswordConfig(src)
-		if dupe != nil {
-			dst = dupe
-		}
-		return
-	}
-
-	if dst.Template == nil {
-		dst.Template = src.Template
-	}
-
-	if len(dst.Args) < 1 {
-		dst.Args = duplicateStrings(src.Args)
-	}
-}
-
 func duplicatePasswordConfig(in *PasswordConfig) (out *PasswordConfig) {
 	out = &PasswordConfig{}
-
 	if in == nil {
 		return
 	}
 
-	var tmpl *string
-	if in.Template != nil {
-		tmpl = in.Template
-	}
-	out = &PasswordConfig{
-		Template: tmpl,
-		Args:     duplicateStrings(in.Args),
-	}
-
+	mergeConfig(out, in)
 	return
 }
 
-func duplicateStrings(in []string) (out []string) {
-	out = make([]string, len(in))
-	copy(out, in)
+type mergeableConfig interface {
+	PasswordConfig | ResticDefaults
+}
+
+func mergeConfig[C mergeableConfig](dst, src *C) {
+	if (dst == nil && src == nil) || (dst != nil && src == nil) {
+		return
+	}
+
+	transformer := mergeTransformer{
+		okTypes: []reflect.Type{
+			reflect.TypeOf(new([]string)),
+			reflect.TypeOf(new(string)),
+		},
+	}
+
+	// The library, github.com/imdario/mergo, may return an error if:
+	// - the type of the 1st input is not a pointer to a struct.
+	// - the types of both inputs are not same type structs.
+	// Neither should be concerns for this tool. Though, make some noise.
+	err := mergo.Merge(dst, src, mergo.WithTransformers(transformer))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "wrestic: %#v\n", err)
+	}
 	return
 }
 
-func duplicateOptionMap(in []map[string]string) (out []map[string]string) {
-	out = make([]map[string]string, len(in))
+type mergeTransformer struct{ okTypes []reflect.Type }
 
-	for i, sources := range in {
-		dest := make(map[string]string)
+func (t mergeTransformer) Transformer(typ reflect.Type) func(dst, src reflect.Value) error {
+	var typeOK bool
+	for _, okType := range t.okTypes {
+		if typ == okType {
+			typeOK = true
+			break
+		}
+	}
+	if !typeOK {
+		return nil
+	}
 
-		for subkey, subval := range sources {
-			dest[subkey] = subval
+	return func(dst, src reflect.Value) error {
+		// Only merge the values if the configuration file does not specify the
+		// field. If dst is an initialized but zero-length slice, do nothing.
+		if dst.CanSet() && dst.IsNil() {
+			dst.Set(src)
+			return nil
 		}
 
-		out[i] = dest
+		return nil
 	}
-
-	return
 }

@@ -22,18 +22,13 @@ type Destination struct {
 func (d *Destination) Merge() (out Defaults, err error) {
 	var srcDefaults Defaults
 	if d.parent != nil {
-		var mergedParent Datastore
-		if mergedParent, err = d.parent.merge(); err != nil {
-			return
-		}
+		mergedParent := d.parent.merge()
 		d.parent = &mergedParent
 		srcDefaults = d.parent.Defaults
 	}
 
 	dupe := duplicateDestination(*d)
-	if err = mergeDefaults(&dupe.Defaults, &srcDefaults); err != nil {
-		return
-	}
+	mergeDefaults(&dupe.Defaults, &srcDefaults)
 	out = dupe.Defaults
 	return
 }

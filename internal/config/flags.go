@@ -66,6 +66,11 @@ func formatFilenameFlag(configDir, filename string) string {
 	return filename
 }
 
+// resticConfig represents a set of command flag values for restic.
+type resticConfig interface {
+	ResticGlobal | ResticBackup | ResticCheck | ResticLS | ResticSnapshots | ResticStats
+}
+
 // makeMergedFlags should be called after a Destination already merged its own
 // configuration defaults via its Merge method.
 func makeMergedFlags[C resticConfig](cmdConf *C, globalConf *ResticGlobal) (out []Flag, err error) {
@@ -183,6 +188,28 @@ func makeResticConfigFlags(in map[string]any) (out []Flag, err error) {
 			err = fmt.Errorf("unhandled type %T at key %q", val, key)
 			return
 		}
+	}
+
+	return
+}
+
+func duplicateStrings(in []string) (out []string) {
+	out = make([]string, len(in))
+	copy(out, in)
+	return
+}
+
+func duplicateOptionMap(in []map[string]string) (out []map[string]string) {
+	out = make([]map[string]string, len(in))
+
+	for i, sources := range in {
+		dest := make(map[string]string)
+
+		for subkey, subval := range sources {
+			dest[subkey] = subval
+		}
+
+		out[i] = dest
 	}
 
 	return

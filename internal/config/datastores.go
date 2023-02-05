@@ -62,9 +62,9 @@ type Datastore struct {
 	parent *Defaults
 }
 
-func (d *Datastore) merge() (out Datastore, err error) {
+func (d *Datastore) merge() (out Datastore) {
 	out, _ = makeDatastore(*d)
-	err = mergeDefaults(&out.Defaults, d.parent)
+	mergeDefaults(&out.Defaults, d.parent)
 	return
 }
 
