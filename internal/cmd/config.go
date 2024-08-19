@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -25,6 +26,7 @@ func init() {
 
 func makeConfig(parentName, name string) *cli.Command {
 	execSubcmd := parentName + " exec"
+	showOutputFormats := []string{"toml", "json"}
 
 	out := cli.Command{
 		Name:  name,
@@ -95,18 +97,37 @@ merged in from any top-level configuration values.`,
 						Usage:   "merge configuration values into destination",
 						Value:   true,
 					},
+					&cli.StringFlag{
+						Name:    "format",
+						Aliases: []string{"f"},
+						Usage:   fmt.Sprintf("output format, one of %q", showOutputFormats),
+						Value:   showOutputFormats[0],
+					},
 				},
 				Action: func(c *cli.Context) error {
 					configDir := c.Path("config-dir")
 					if configDir == "" {
 						return errors.New("config dir cannot be empty; possibly could not determine a default either")
 					}
+					outputFormat := c.String("format")
+					{
+						var formatOK bool // TODO: use slices.Contains if upgrading min golang version to >= v1.21.0
+						for i := range showOutputFormats {
+							if outputFormat == showOutputFormats[i] {
+								formatOK = true
+								break
+							}
+						}
+						if !formatOK {
+							return fmt.Errorf("unknown format %q, should be one of %q", outputFormat, showOutputFormats)
+						}
+					}
 					stores, err := fetchDatastores(configDir, c.StringSlice("storenames"), c.StringSlice("destnames"))
 					if err != nil {
 						return err
 					}
 
-					return displayDatastores(os.Stdout, c.Bool("merge"), stores)
+					return displayDatastores(os.Stdout, c.Bool("merge"), outputFormat, stores)
 				},
 			},
 		},
@@ -131,7 +152,7 @@ func fetchDatastores(configDir string, storenames, destnames []string) (out []co
 	return
 }
 
-func displayDatastores(w io.Writer, merge bool, stores []config.Datastore) error {
+func displayDatastores(w io.Writer, merge bool, format string, stores []config.Datastore) (err error) {
 	for _, store := range stores {
 		if merge {
 			for name, dest := range store.Destinations {
@@ -144,12 +165,20 @@ func displayDatastores(w io.Writer, merge bool, stores []config.Datastore) error
 			}
 		}
 
-		fmt.Fprintf(w, "#\n# %s\n#\n", store.Name)
-		err := config.EncodeTOML(w, store)
-		if err != nil {
-			return err
+		switch format {
+		case "toml":
+			fmt.Fprintf(w, "#\n# %s\n#\n", store.Name)
+			if err = config.EncodeTOML(w, store); err != nil {
+				return
+			}
+			fmt.Fprintln(w)
+		case "json":
+			var raw []byte
+			if raw, err = json.Marshal(store); err != nil {
+				return
+			}
+			fmt.Fprintf(w, "%s\n", raw)
 		}
-		fmt.Fprintln(w)
 	}
 
 	return nil

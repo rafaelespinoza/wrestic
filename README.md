@@ -258,3 +258,35 @@ A destination is contained by a datastore.
 
 Like datastores, destinations may specify their own set of defaults. Any unspecified values are merged in
 from datastore defaults, and by proxy the top-level defaults.
+
+### Overview config as a table
+
+Here's a sample script to view high level details of each datastore.
+Which datastore is it, where is data sourced from, and where are backups destined to.
+It requires:
+
+- [jq](https://jqlang.github.io/jq/)
+- [miller](https://miller.readthedocs.io/) (`mlr`)
+
+```sh
+$ wrestic config show --format json |
+    jq '{
+      Store: .Name,
+      SourcePath: (.Sources | map(.Path))[],
+      Dest: (.Destinations | map({ Name, Path }))[],
+    }' |
+    mlr --ijsonl --opprint --barred cat
+```
+In the `jq` expression, note the use of the iterator `.[]`, which is meant to "unroll" array
+fields `SourcePath` and `Dest`, so that individual objects from those fields (`Sources` and
+`Destinations` respectively) end up with their own line in final output table.
+```
++--------+----------------------------------------+-----------+------------------------------------------+
+| Store  | SourcePath                             | Dest.Name | Dest.Path                                |
++--------+----------------------------------------+-----------+------------------------------------------+
+| stuff  | /tmp/wrestic_test/testdata/srcdata/foo | alfa      | /tmp/wrestic_test/testdata/repos/alfa    |
+| stuff  | /tmp/wrestic_test/testdata/srcdata/foo | bravo     | /tmp/wrestic_test/testdata/repos/bravo   |
+| things | /tmp/wrestic_test/testdata/srcdata/bar | charlie   | /tmp/wrestic_test/testdata/repos/charlie |
+| things | /tmp/wrestic_test/testdata/srcdata/qux | charlie   | /tmp/wrestic_test/testdata/repos/charlie |
++--------+----------------------------------------+-----------+------------------------------------------+
+```
