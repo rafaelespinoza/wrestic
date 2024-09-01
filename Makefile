@@ -2,7 +2,7 @@ GO ?= go
 GOSEC ?= gosec
 
 BIN_DIR=bin
-MAIN=$(BIN_DIR)/main
+MAIN=$(BIN_DIR)/wrestic
 PKG_IMPORT_PATH=github.com/rafaelespinoza/wrestic
 TESTDATA_SCRIPT=testdata.sh
 

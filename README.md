@@ -30,6 +30,13 @@ but it differs in some ways:
 
 ## Usage
 
+Compile an executable binary.
+```sh
+$ make build
+```
+This will output to `bin/wrestic`. The following mentions of `wrestic` presume that the binary has
+been moved into your `PATH`.
+
 Run `wrestic config init` to set up a directory structure on the host so this tool can look up any
 configuration or data as needed. By default, the config directory path depends on the host system.
 Run `wrestic config` to see that default directory. Subcommands that require a configuration file may
@@ -261,26 +268,46 @@ from datastore defaults, and by proxy the top-level defaults.
 
 ### Overview config as a table
 
-Here's a sample script to view high level details of each datastore.
-Which datastore is it, where is data sourced from, and where are backups destined to.
-It requires:
+Use the script, `show_config.sh` to view high level details of each datastore.
 
-- [jq](https://jqlang.github.io/jq/)
-- [miller](https://miller.readthedocs.io/) (`mlr`)
-
+Basic overview
 ```sh
-$ wrestic config show --format json |
-    jq '{
-      Store: .Name,
-      SourcePath: (.Sources | map(.Path))[],
-      Dest: (.Destinations | map({ Name, Path }))[],
-    }' |
-    mlr --ijsonl --opprint --barred cat
+$ ./show_config.sh -b
++--------+-------------+
+| Store  | DestNames   |
++--------+-------------+
+| stuff  | alfa, bravo |
+| things | charlie     |
++--------+-------------+
 ```
-In the `jq` expression, note the use of the iterator `.[]`, which is meant to "unroll" array
-fields `SourcePath` and `Dest`, so that individual objects from those fields (`Sources` and
-`Destinations` respectively) end up with their own line in final output table.
+
+Source paths only
+```sh
+$ ./show_config.sh -s
++--------+----------------------------------------+
+| Store  | SourcePath                             |
++--------+----------------------------------------+
+| stuff  | /tmp/wrestic_test/testdata/srcdata/foo |
+| things | /tmp/wrestic_test/testdata/srcdata/bar |
+| things | /tmp/wrestic_test/testdata/srcdata/qux |
++--------+----------------------------------------+
 ```
+
+Destinations only
+```sh
+$ ./show_config.sh -d
++--------+----------+------------------------------------------+
+| Store  | DestName | DestPath                                 |
++--------+----------+------------------------------------------+
+| stuff  | alfa     | /tmp/wrestic_test/testdata/repos/alfa    |
+| stuff  | bravo    | /tmp/wrestic_test/testdata/repos/bravo   |
+| things | charlie  | /tmp/wrestic_test/testdata/repos/charlie |
++--------+----------+------------------------------------------+
+```
+
+Stores with Both source paths and destinations
+```sh
+$ ./show_config.sh -B
 +--------+----------------------------------------+-----------+------------------------------------------+
 | Store  | SourcePath                             | Dest.Name | Dest.Path                                |
 +--------+----------------------------------------+-----------+------------------------------------------+
