@@ -138,6 +138,8 @@ function main() {
 	[[ "${show_source_paths}" -eq 1 ]] && _run "${jq_store_src_paths}"
 	[[ "${show_dest_paths}" -eq 1 ]] && _run "${jq_store_dest_paths}"
 	[[ "${show_omni_view}" -eq 1 ]] && _run "${jq_omni_view}"
+
+	return 0
 }
 
 main "$@"

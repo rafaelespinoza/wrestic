@@ -171,7 +171,8 @@ func makeResticConfigFlags(in map[string]any) (out []Flag, err error) {
 		case int:
 			out = append(out, Flag{key, strconv.Itoa(val)})
 		case uint:
-			out = append(out, Flag{key, strconv.Itoa(int(val))})
+			v := strconv.FormatUint(uint64(val), 10)
+			out = append(out, Flag{key, v})
 		case string:
 			out = append(out, Flag{key, val})
 		case []string: // flags that may be specified multiple times will be of this type.

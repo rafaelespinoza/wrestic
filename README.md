@@ -30,9 +30,9 @@ but it differs in some ways:
 
 ## Usage
 
-Compile an executable binary.
+Compile an executable binary. Requires [just](https://just.systems/).
 ```sh
-$ make build
+$ just build
 ```
 This will output to `bin/wrestic`. The following mentions of `wrestic` presume that the binary has
 been moved into your `PATH`.
